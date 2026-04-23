@@ -64,7 +64,7 @@ int main(){
             cv::Mat distcoeffs=cv::Mat::zeros(8,1,CV_64F);
             std::vector<cv::Mat>rvecs,tvecs;
 
-            double rms=cv::calibrateCamera(objpoints,imgpoints,frame.size(),cameram,distcoeffs,rvecs,tvecs,cv::CALIB_FIX_K4|cv::CALIB_FIX_K5);
+            double rms=cv::calibrateCamera(objpoints,imgpoints,frame.size(),cameram,distcoeffs,rvecs,tvecs,0);
 
             cv::FileStorage fs(savepath+"/cab_result.xml",cv::FileStorage::WRITE);
             fs<<"camera_matrix"<<cameram;
