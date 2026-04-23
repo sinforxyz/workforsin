@@ -38,7 +38,7 @@ int main(){
         if(frame.empty()){
             break;
         }
-        cv::imshow("window",frame);
+        
 
         char key=(char)cv::waitKey(30);
         
@@ -52,6 +52,8 @@ int main(){
         std::vector<cv::Point2f> corners;
         bool found=cv::findChessboardCorners(gray,broadsize,corners,cv::CALIB_CB_ADAPTIVE_THRESH|cv::CALIB_CB_NORMALIZE_IMAGE|cv::CALIB_CB_FAST_CHECK);
         cv::drawChessboardCorners(frame, broadsize, corners, found);
+        cv::imshow("window",frame);
+        
         if(key=='s'||key=='S'){
             if(found){
                 objpoints.emplace_back(objp);
