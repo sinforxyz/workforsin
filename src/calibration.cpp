@@ -53,9 +53,10 @@ int main(){
         bool found=cv::findChessboardCorners(gray,broadsize,corners,cv::CALIB_CB_ADAPTIVE_THRESH|cv::CALIB_CB_NORMALIZE_IMAGE|cv::CALIB_CB_FAST_CHECK);
         cv::drawChessboardCorners(frame, broadsize, corners, found);
         cv::imshow("window",frame);
-        
+
         if(key=='s'||key=='S'){
             if(found){
+                cv::cornerSubPix(gray, corners, cv::Size(11,11),cv::Size(-1,-1),cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.001));
                 objpoints.emplace_back(objp);
                 imgpoints.emplace_back(corners);
                 savecount++;
