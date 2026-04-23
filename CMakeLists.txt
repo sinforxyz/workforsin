@@ -9,10 +9,12 @@ find_package(OpenCV REQUIRED)
 file(GLOB SOURCES "src/*.cpp")
 
 # 生成可执行文件
-add_executable(main ${SOURCES})
+add_executable(calibration src/calibration.cpp)
+target_link_libraries(calibration ${OpenCV_LIBS})
 
-# 链接 OpenCV
-target_link_libraries(main PRIVATE ${OpenCV_LIBS})
+add_executable(detection src/detection.cpp)
+target_link_libraries(detection ${OpenCV_LIBS})
 
-# 头文件路径
-target_include_directories(main PRIVATE ${OpenCV_INCLUDE_DIRS})
+add_executable(pnp src/pnp.cpp)
+target_link_libraries(pnp ${OpenCV_LIBS})
+

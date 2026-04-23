@@ -1,23 +1,26 @@
 #include<opencv2/opencv.hpp>
 #include<iostream>
 #include<vector>
+#include<filesystem>
+#include<string>
+
 int main(){
     cv::VideoCapture cap(0);
     if(!cap.isOpened()){
-        std::cout<<"cannot open camera";
-        return -1;
-    }
+            std::cout<<"cannot open camera";
+            return -1;
+        }
 
     cv::Size broadsize(10,10);
-    float squaresize;
+    float squaresize=13.2f;
 
-    std::vector<std::vector<cv::Piont3f>> objpoints;
-    std::vector<std::vector<cv::Piont2f>> imgpoints;
+    std::vector<std::vector<cv::Point3f>> objpoints;
+    std::vector<std::vector<cv::Point2f>> imgpoints;
 
     std::vector<cv::Point3f> objp;
-    objp.reserve(boardsize.width*boardsize.height);
-    for(int i=0;i<boardsize.height;i++){
-        for(int j=0;j<boardsize.width;j++){
+    objp.reserve(broadsize.width*broadsize.height);
+    for(int i=0;i<broadsize.height;i++){
+        for(int j=0;j<broadsize.width;j++){
             objp.emplace_back(j*squaresize,i*squaresize,0.0f);
         }
     }
@@ -25,17 +28,53 @@ int main(){
     cv::Mat gray;
     int savecount=0;
 
-    while(1){
+    std::filesystem::path currentpath=std::filesystem::current_path();
+    std::filesystem::path parentpath=currentpath.parent_path();
+    std::string savepath=parentpath.string();
+
+    bool cameraopen=true;
+    while(cameraopen){
         cap>>frame;
         if(frame.empty()){
             break;
         }
+        cv::imshow("window",frame);
 
+        char key=(char)cv::waitKey(30);
+        
+        if(key==27&&cameraopen){
+            cap.release();
+            cameraopen=false;
+            break;
+        }
         cv::cvtColor(frame,gray,cv::COLOR_BGR2GRAY);
 
         std::vector<cv::Point2f> corners;
+        bool found=cv::findChessboardCorners(gray,broadsize,corners,cv::CALIB_CB_ADAPTIVE_THRESH|cv::CALIB_CB_NORMALIZE_IMAGE|cv::CALIB_CB_FAST_CHECK);
+        if(key=='s'||key=='S'){
+            if(found){
+                objpoints.emplace_back(objp);
+                imgpoints.emplace_back(corners);
+                savecount++;
+            }
+        }
+        if(key=='c'||key=='C'){
+        if(savecount>=5){
+            cv::Mat cameram=cv::Mat::eye(3,3,CV_64F);
+            cv::Mat distcoeffs=cv::Mat::zeros(8,1,CV_64F);
+            std::vector<cv::Mat>rvecs,tvecs;
 
-        
+            double rms=cv::calibrateCamera(objpoints,imgpoints,frame.size(),cameram,distcoeffs,rvecs,tvecs,cv::CALIB_FIX_K4|cv::CALIB_FIX_K5);
+
+            cv::FileStorage fs(savepath+"/cab_result.xml",cv::FileStorage::WRITE);
+            fs<<"camera_matrix"<<cameram;
+            fs<<"distcoffs"<<distcoeffs;
+            fs.release();
+            cap.release();
+            cameraopen=false;
+            break;
+        }}
     }
+    cv::destroyAllWindows(); 
     return 0;
 }

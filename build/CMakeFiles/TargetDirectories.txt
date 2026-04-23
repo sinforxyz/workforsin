@@ -1,0 +1,5 @@
+/home/sin1/workforsin/build/CMakeFiles/calibration.dir
+/home/sin1/workforsin/build/CMakeFiles/detection.dir
+/home/sin1/workforsin/build/CMakeFiles/pnp.dir
+/home/sin1/workforsin/build/CMakeFiles/edit_cache.dir
+/home/sin1/workforsin/build/CMakeFiles/rebuild_cache.dir
