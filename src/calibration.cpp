@@ -11,8 +11,8 @@ int main(){
             return -1;
         }
 
-    cv::Size broadsize(10,7);
-    float squaresize=13.2f;
+    cv::Size broadsize(8,6);
+    float squaresize=2.0f;
 
     std::vector<std::vector<cv::Point3f>> objpoints;
     std::vector<std::vector<cv::Point2f>> imgpoints;
