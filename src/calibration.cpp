@@ -65,6 +65,7 @@ int main(){
             std::vector<cv::Mat>rvecs,tvecs;
 
             double rms=cv::calibrateCamera(objpoints,imgpoints,frame.size(),cameram,distcoeffs,rvecs,tvecs,0);
+            std::cout<<rms<<std::endl;
 
             cv::FileStorage fs(savepath+"/cab_result.xml",cv::FileStorage::WRITE);
             fs<<"camera_matrix"<<cameram;
