@@ -3,13 +3,12 @@
 #include<filesystem>
 #include<string>
 
-cv::Mat process(cv::Mat img){
-    cv::Mat gray;
-    cv::extractChannel(img,gray,0);
-
-
+cv::Mat process(cv::Mat img,int i){
+    cv::Mat red;
+    cv::extractChannel(img,red,i);
+    
     cv::Mat img_blur;
-    cv::GaussianBlur(gray, img_blur, cv::Size(3, 3), 1.0);
+    cv::GaussianBlur(red, img_blur, cv::Size(3, 3), 1.0);
 
     cv::Mat im;
     cv::threshold(img_blur,im,238,255,cv::THRESH_BINARY_INV);
@@ -54,8 +53,9 @@ cv::Mat process(cv::Mat img){
         cv::circle(result,midpoint2,3,cv::Scalar(0,0,255),-1);
     }
     if(midpoints.size()>=4){
-    cv::line(result,midpoints[0],midpoints[2],cv::Scalar(0,0,255),2);
-    cv::line(result,midpoints[1],midpoints[3],cv::Scalar(0,0,255),2);
+        for(int j=0;j<midpoints.size();j=j+4){
+    cv::line(result,midpoints[j+0],midpoints[j+2],cv::Scalar(0,0,255),2);
+    cv::line(result,midpoints[j+1],midpoints[j+3],cv::Scalar(0,0,255),2);}
     }
 
     return result;
@@ -67,7 +67,7 @@ int main(){
         std::cout << entry.path() << std::endl;
         if(entry.path().extension()==".jpg"){
             cv::Mat img=cv::imread(entry.path().string());
-            cv::Mat result=process(img);
+            cv::Mat result=process(img,0);
             std::filesystem::path inputpath=entry.path();
             std::filesystem::path outputdir="../output";
             std::filesystem::path outputpath=outputdir/inputpath.filename();
@@ -97,8 +97,8 @@ int main(){
                     break;
                 }
 
-                cv::Mat result=process(frame);
-                writer.write(frame);
+                cv::Mat result=process(frame,2);
+                writer.write(result);
             }
             cap.release();
             writer.release();
