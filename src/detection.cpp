@@ -2,6 +2,7 @@
 #include<opencv2/opencv.hpp>
 #include<filesystem>
 #include<string>
+#include<cmath>
 
 cv::Mat process(cv::Mat img,int i){
     cv::Mat red;
@@ -27,7 +28,7 @@ cv::Mat process(cv::Mat img,int i){
 
 
     std::vector<std::vector<cv::Point>> valid_contours;
-    for (auto& cnt : contours) {
+    for (auto& cnt:contours) {
         double area = contourArea(cnt);
         cv::Rect rect = boundingRect(cnt);
         double aspect_ratio = (double)rect.height / rect.width;
@@ -39,23 +40,38 @@ cv::Mat process(cv::Mat img,int i){
 
     cv::Mat result = img.clone();
     std::vector<cv::Point2f> midpoints;
-    for (auto& cnt : valid_contours) {
+    for (auto& cnt:valid_contours) {
         cv::Rect rect = cv::boundingRect(cnt);
         cv::rectangle(result, rect, cv::Scalar(0, 0, 255), 2);
         float midx=rect.x+rect.width/2.0;
         cv::Point2f midpoint1(midx,rect.y);
         cv::Point2f midpoint2(midx,rect.y+rect.height);
 
+
         midpoints.push_back(midpoint1);
         midpoints.push_back(midpoint2);
 
-        cv::circle(result,midpoint1,3,cv::Scalar(0,0,255),-1);
-        cv::circle(result,midpoint2,3,cv::Scalar(0,0,255),-1);
+
     }
-    if(midpoints.size()>=4){
+
+    std::vector<cv::Point2f>Midpoints;
+
+
+    if(midpoints.size()>0){
         for(int j=0;j<midpoints.size();j=j+4){
-    cv::line(result,midpoints[j+0],midpoints[j+2],cv::Scalar(0,0,255),2);
-    cv::line(result,midpoints[j+1],midpoints[j+3],cv::Scalar(0,0,255),2);}
+            if(6.0*6.0*(std::pow(midpoints[j+0].x-midpoints[j+1].x,2)+std::pow(midpoints[j+0].y-midpoints[j+1].y,2))<=
+            std::pow(midpoints[j+0].x-midpoints[j+2].x,2)+std::pow(midpoints[j+0].y-midpoints[j+2].y,2)){
+                continue;
+            }else if(i==1&&midpoints[j+0].y-midpoints[j+2].y<=0.5*std::pow(std::pow(midpoints[j+0].x-midpoints[j+2].x,2)+std::pow(midpoints[j+0].y-midpoints[j+2].y,2),0.5)){
+
+            }else{
+                for(int k=j;k<j+4;k++){
+                    Midpoints.push_back(midpoints[k]);
+                }
+                cv::line(result,Midpoints[j+0],Midpoints[j+2],cv::Scalar(0,0,255),2);
+                cv::line(result,Midpoints[j+1],Midpoints[j+3],cv::Scalar(0,0,255),2);
+            }
+        }
     }
 
     return result;
