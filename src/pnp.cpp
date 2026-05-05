@@ -6,7 +6,8 @@
 double getDistance(const std::string& xml_path, 
                    float width, float height,
                    float x0, float y0, float x1, float y1, 
-                   float x2, float y2, float x3, float y3) {
+                   float x2, float y2, float x3, float y3,
+                   cv::Mat& R, cv::Mat& t) {  
     cv::Mat K, D;
     cv::FileStorage fs(xml_path, cv::FileStorage::READ);
     fs["camera_matrix"] >> K;
@@ -28,6 +29,9 @@ double getDistance(const std::string& xml_path,
     if (!cv::solvePnP(obj, img, K, D, rvec, tvec)) {
         return -1;
     }
+    
+    cv::Rodrigues(rvec, R);
+    t = tvec.clone();
     
     double x = tvec.at<double>(0);
     double y = tvec.at<double>(1);
@@ -88,14 +92,24 @@ cv::Mat process(cv::Mat img,int i){
         for(int j=0;j+3<midpoints.size();j=j+4){
             cv::line(result,midpoints[j+0],midpoints[j+2],cv::Scalar(0,0,255),2);
             cv::line(result,midpoints[j+1],midpoints[j+3],cv::Scalar(0,0,255),2);
-            double dist = getDistance("../cab_result.xml", 230.0, 110.0,midpoints[j+1].x,midpoints[j+1].y
-            ,midpoints[j+0].x,midpoints[j+0].y,midpoints[j+2].x,midpoints[j+2].y,midpoints[j+3].x,midpoints[j+3].y);     
-            if (dist > 0) {
-                std::string text = std::to_string(dist) + " m";
-                cv::putText(result,text,cv::Point(midpoints[j+0].x/2+midpoints[j+3].x/2,midpoints[j+0].y/2+midpoints[j+3].y/2),
-                cv::FONT_HERSHEY_SIMPLEX,0.7,cv::Scalar(122,122,122),2);
+            cv::Mat R, t;
+            double dist = getDistance("../cab_result.xml", 230.0, 110.0,midpoints[j+1].x, midpoints[j+1].y,
+                midpoints[j+0].x, midpoints[j+0].y,midpoints[j+2].x, midpoints[j+2].y,midpoints[j+3].x, midpoints[j+3].y,R, t); 
+                if (dist > 0) {
+                    std::string dist_text = std::to_string(dist).substr(0, 4) + " m";
+                    cv::putText(result, dist_text,
+                        cv::Point(midpoints[j+0].x/2 + midpoints[j+3].x/2 - 60,midpoints[j+0].y/2 + midpoints[j+3].y/2 - 60),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+                        std::string r_text = cv::format("R: [%.2f, %.2f, %.2f; %.2f, %.2f, %.2f; %.2f, %.2f, %.2f]",
+                            R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2),
+                            R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2),
+                            R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2));
+                            std::string t_text = cv::format("t: [%.1f, %.1f, %.1f]",
+                                t.at<double>(0), t.at<double>(1), t.at<double>(2));
+                                cv::putText(result, r_text,cv::Point(10, 60),cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+                                cv::putText(result, t_text,cv::Point(10, 90),cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+                            }
             }
-        }
     }
 
     return result;
