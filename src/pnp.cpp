@@ -3,16 +3,12 @@
 #include <cmath>
 #include <filesystem>
 
-double getDistance(const std::string& xml_path, 
-                   float width, float height,
+double getDistance(float width, float height,
                    float x0, float y0, float x1, float y1, 
                    float x2, float y2, float x3, float y3,
                    cv::Mat& R, cv::Mat& t) {  
-    cv::Mat K, D;
-    cv::FileStorage fs(xml_path, cv::FileStorage::READ);
-    fs["camera_matrix"] >> K;
-    fs["distortion_coefficients"] >> D;
-    fs.release();
+    cv::Mat K = (cv::Mat_<double>(3, 3) << 2453.3, 0, 949.3,0, 2455.2, 554.5,0, 0, 1);
+    cv::Mat D = (cv::Mat_<double>(1, 5) << -0.0682737005569565, 0.1983544402464456, 0.0016855914452479342, 0.0024125119646311016, 0.0);
     
     std::vector<cv::Point3f> obj = {
         {-width/2, -height/2, 0},
@@ -93,7 +89,7 @@ cv::Mat process(cv::Mat img,int i){
             cv::line(result,midpoints[j+0],midpoints[j+2],cv::Scalar(0,0,255),2);
             cv::line(result,midpoints[j+1],midpoints[j+3],cv::Scalar(0,0,255),2);
             cv::Mat R, t;
-            double dist = getDistance("../cab_result.xml", 230.0, 110.0,midpoints[j+1].x, midpoints[j+1].y,
+            double dist = getDistance(135.0, 55.0,midpoints[j+1].x, midpoints[j+1].y,
                 midpoints[j+0].x, midpoints[j+0].y,midpoints[j+2].x, midpoints[j+2].y,midpoints[j+3].x, midpoints[j+3].y,R, t); 
                 if (dist > 0) {
                     std::string dist_text = std::to_string(dist).substr(0, 4) + " m";
