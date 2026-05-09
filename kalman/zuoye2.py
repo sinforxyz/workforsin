@@ -2,22 +2,22 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv('homework2_result.csv')
+df = pd.read_csv('zuoye2_result.csv')
 
 hist = df[df['prediction'].isna()]
 pred = df[~df['prediction'].isna()]
 
 plt.figure(figsize=(14, 7))
-plt.plot(hist['day'], hist['original'], 'b.', markersize=3, alpha=0.5, label='原始价格')
-plt.plot(hist['day'], hist['filtered'], 'r-', linewidth=1.5, label='卡尔曼滤波')
+plt.plot(hist['day'], hist['original'], 'b.', markersize=3, alpha=0.5, label='origin price')
+plt.plot(hist['day'], hist['filtered'], 'r-', linewidth=1.5, label='kalman')
 
 if len(pred) > 0:
-    plt.plot(pred['day'], pred['prediction'], 'g--', linewidth=1.5, marker='o', markersize=4, label='预测价格')
+    plt.plot(pred['day'], pred['prediction'], 'g--', linewidth=1.5, marker='o', markersize=4, label='predict price')
     plt.axvline(x=pred['day'].iloc[0] - 0.5, color='gray', linestyle=':', alpha=0.7)
 
-plt.xlabel('天数')
-plt.ylabel('价格')
-plt.title('作业二：股票价格预测')
+plt.xlabel('day')
+plt.ylabel('price')
+plt.title('zuoye 2')
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.tight_layout()

@@ -20,7 +20,6 @@ for i, (filename, title) in enumerate(files):
         
         ax.plot(df['time'], df['original'], 'b.', markersize=0.5, alpha=0.3, label='Original')
         ax.plot(df['time'], df['filtered'], 'r-', linewidth=1.5, label='Kalman Filtered')
-        ax.plot(df['time'], df['fitted'], 'g--', linewidth=1.5, label='Quadratic Fit')
         
         ax.set_xlabel('x')
         ax.set_ylabel('y')

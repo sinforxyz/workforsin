@@ -21,10 +21,10 @@ public:
     }
 };
 
-void processFile(const std::string& inputPath, const std::string& outputPath, int fileNum) {
+void processFile(const std::string& inputPath, const std::string& outputPath, int fileNum, double Q, double R) {
     std::ifstream file(inputPath);
     if (!file.is_open()) {
-        std::cout << "无法打开文件: " << inputPath << std::endl;
+        std::cout << "Cannot open file: " << inputPath << std::endl;
         return;
     }
     
@@ -38,7 +38,7 @@ void processFile(const std::string& inputPath, const std::string& outputPath, in
     
     if (times.empty()) return;
     
-    KalmanFilter1D kf(0.01, 0.1, values[0], 1.0);
+    KalmanFilter1D kf(Q, R, values[0], 1.0);
     std::vector<double> filtered;
     for (double v : values) {
         filtered.push_back(kf.filter(v));
@@ -55,7 +55,7 @@ void processFile(const std::string& inputPath, const std::string& outputPath, in
     double a = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
     double b = (sum_y - a * sum_x) / n;
     
-    std::cout << "文件" << fileNum << " 拟合方程: y = " << a << " * t + " << b << std::endl;
+    std::cout << "File " << fileNum << " fitted: y = " << a << " * t + " << b << std::endl;
     
     std::ofstream out(outputPath);
     out << "time,original,filtered,fitted\n";
@@ -63,18 +63,17 @@ void processFile(const std::string& inputPath, const std::string& outputPath, in
         out << times[i] << "," << values[i] << "," << filtered[i] << "," << a * times[i] + b << "\n";
     }
     out.close();
-    std::cout << "已保存: " << outputPath << std::endl;
 }
 
 int main() {
-    std::cout << "========== 作业一 ==========\n\n";
+    std::cout << "========== 作业 1 ==========\n\n";
     
-    processFile("kalman_filter/homework_data_1.txt", "zuoye1_1.csv", 1);
-    processFile("kalman_filter/homework_data_2.txt", "zuoye1_2.csv", 2);
-    processFile("kalman_filter/homework_data_3.txt", "zuoye1_3.csv", 3);
-    processFile("kalman_filter/homework_data_4.txt", "zuoye1_4.csv", 4);
+    processFile("kalman_filter/homework_data_1.txt", "zuoye1_1.csv", 1, 0.005, 3.0);
+    processFile("kalman_filter/homework_data_2.txt", "zuoye1_2.csv", 2, 0.01, 1.0);
+    processFile("kalman_filter/homework_data_3.txt", "zuoye1_3.csv", 3, 1.0, 25.0);
+    processFile("kalman_filter/homework_data_4.txt", "zuoye1_4.csv", 4, 0.001, 3.0);
     
-    std::cout << "\n完成。运行 python zuoye1.py 画图" << std::endl;
+    std::cout << "\nDone! Run python zuoye1.py to plot" << std::endl;
     
     return 0;
 }
