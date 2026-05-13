@@ -2,6 +2,7 @@
 #include<array>
 #include<cmath>
 #include<map>
+#include<limits>
 
 class quaternion{
 private:
@@ -33,7 +34,7 @@ public:
         }else{
             pitch=std::asin(sin_pitch);
             yaw=std::atan2(2*(c*d+a*b),1-2*(b*b+c*c));
-            roll+std::atan2(2*(b*c+a*d),1-2*(b*b+d*d));
+            roll=std::atan2(2*(b*c+a*d),1-2*(b*b+d*d));
         }
         return{yaw,pitch,roll};
     }
@@ -46,22 +47,22 @@ public:
                           a*other.c-b*other.d+c*other.a+d*other.b,
                           a*other.d+b*other.c-c*other.a+d*other.a);
     }
-    double norm(){
+    double norm()const{
         return pow(a*a+b*b+c*c+d*d,0.5);//模
     }
-    quaternion conjugate(){
+    quaternion conjugate()const{
         return quaternion(a,-b,-c,-d);//共轭
     }
-    quaternion inverse(){
+    quaternion inverse()const{
         quaternion q_=conjugate();
         double qn=norm();
         return quaternion(q_.a/(qn*qn),q_.b/(qn*qn),q_.c/(qn*qn),q_.d/(qn*qn));//逆
     }
-    quaternion rotation(const quaternion& v){//旋转
+    quaternion rotation(const quaternion& v)const{//旋转
         quaternion q_=inverse();
         return (*this)*v*q_;
     }
-    friend trans;
+    friend class trans;
 };
 
 class pose{
@@ -73,10 +74,10 @@ class pose{
     pose(double x,double y,double z,double yaw,double pitch,double row):
     position{x,y,z},euler{yaw,pitch,row}{} 
     void print(){
-        std::cout<<position[0]<<" "<<position[1]<<""<<position[1]<<" "
+        std::cout<<position[0]<<" "<<position[1]<<" "<<position[2]<<" "
         <<euler[0]<<" "<<euler[1]<<" "<<euler[2]<<std::endl;
     }   
-    friend trans;
+    friend class trans;
 };
 
 class trans{
@@ -98,13 +99,13 @@ class trans{
         }
         return {yaw,pitch,roll};
     }
-    void TF(pose& B,pose& A){
+    void TF(pose& B,pose& A)const{
         std::array<double,3> B_A_R_e=to_euler();
         quaternion B_A_q(B_A_R_e[0],B_A_R_e[1],B_A_R_e[2]);//旋转矩阵变为四元数
         quaternion B_p_q(0,B.position[0],B.position[1],B.position[2]);//坐标B转换为四元数
         quaternion B_inv=B_A_q.rotation(B_p_q);//旋转
-        A.position={B_inv.b+B.position[0],B_inv.c+B.position[1],B_inv.d+B.position[2]};
-        quaternion B_e_q(0,B.euler[0],B.euler[1],B.euler[2]);//姿态转换为四元数
+        A.position={B_inv.b+t[0],B_inv.c+t[1],B_inv.d+t[2]};
+        quaternion B_e_q(B.euler[0],B.euler[1],B.euler[2]);//姿态转换为四元数
         A.euler=(B_A_q*B_e_q).to_euler();
     };
 };
@@ -112,7 +113,7 @@ class trans{
 
 int main(){
     double x,y,z,yaw,pitch,roll;
-    std::map<std::string,trans> b_a={{"Grimbal",{}}};
+    std::map<std::string,trans> b_a={{"Gimbal",{}}};
     std::string line;
     std::cin>>x>>y>>z>>yaw>>pitch>>roll;
     pose b{x,y,z,yaw,pitch,roll},a;
