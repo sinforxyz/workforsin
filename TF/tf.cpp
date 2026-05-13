@@ -1,6 +1,7 @@
 #include<iostream>
 #include<array>
 #include<cmath>
+#include<map>
 
 class quaternion{
 private:
@@ -70,7 +71,11 @@ class pose{
     public:
     pose():position{0,0,0},euler{0,0,0}{}
     pose(double x,double y,double z,double yaw,double pitch,double row):
-    position{x,y,z},euler{yaw,pitch,row}{}    
+    position{x,y,z},euler{yaw,pitch,row}{} 
+    void print(){
+        std::cout<<position[0]<<" "<<position[1]<<""<<position[1]<<" "
+        <<euler[0]<<" "<<euler[1]<<" "<<euler[2]<<std::endl;
+    }   
     friend trans;
 };
 
@@ -93,8 +98,8 @@ class trans{
         }
         return {yaw,pitch,roll};
     }
-    void TF(pose B,trans B_A,pose A){
-        std::array<double,3> B_A_R_e=B_A.to_euler();
+    void TF(pose& B,pose& A){
+        std::array<double,3> B_A_R_e=to_euler();
         quaternion B_A_q(B_A_R_e[0],B_A_R_e[1],B_A_R_e[2]);//旋转矩阵变为四元数
         quaternion B_p_q(0,B.position[0],B.position[1],B.position[2]);//坐标B转换为四元数
         quaternion B_inv=B_A_q.rotation(B_p_q);//旋转
@@ -106,6 +111,22 @@ class trans{
 
 
 int main(){
-
+    double x,y,z,yaw,pitch,roll;
+    std::map<std::string,trans> b_a={{"Grimbal",{}}};
+    std::string line;
+    std::cin>>x>>y>>z>>yaw>>pitch>>roll;
+    pose b{x,y,z,yaw,pitch,roll},a;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+    std::getline(std::cin,line);
+    size_t pos=line.find('/');
+    std::string b_a_t=line.substr(pos+1);
+    auto it=b_a.find(b_a_t);
+    if(it==b_a.end()){
+        std::cout<<"no find";
+    }else{
+        it->second.TF(b,a);
+        a.print();
+    }
+    
     return 0;
 }
