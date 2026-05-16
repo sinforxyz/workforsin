@@ -3,131 +3,42 @@
 #include<cmath>
 #include<map>
 #include<limits>
-
-class quaternion{
-private:
-    double a,b,c,d;
-public:
-    quaternion(double a,double b,double c,double d):a(a),b(b),c(c),d(d){}
-    quaternion():a(0),b(0),c(0),d(0){}
-    quaternion(double yaw,double pitch,double roll){
-        double cy=std::cos(yaw*0.5);
-        double sy=std::sin(yaw*0.5);
-        double cp=std::cos(pitch*0.5);
-        double sp=std::sin(pitch*0.5);
-        double cr=std::cos(roll*0.5);
-        double sr=std::sin(roll*0.5);
-
-        a=cr*cp*cy+sr*sp*sy;
-        b=sr*cp*cy-cr*sp*sy;
-        c=cr*sp*cy+sr*cp*sy;
-        d=cr*sy*cp-sr*sp*cy;
-    }
-    std::array<double,3>to_euler()const{
-        double yaw,pitch,roll;
-        double sin_pitch=-2*(b*d-a*c);
-
-        if(std::abs(sin_pitch)>=0.999){
-            pitch=std::copysign(M_PI/2.0,sin_pitch);
-            yaw=std::atan2(-b*c-a*d,0.5-c*c-d*d);
-            roll=0;
-        }else{
-            pitch=std::asin(sin_pitch);
-            yaw=std::atan2(2*(c*d+a*b),1-2*(b*b+c*c));
-            roll=std::atan2(2*(b*c+a*d),1-2*(b*b+d*d));
-        }
-        return{yaw,pitch,roll};
-    }
-    quaternion operator+(const quaternion&other)const{
-        return quaternion(a+other.a,b+other.b,c+other.c,d+other.d);
-    }
-    quaternion operator*(const quaternion&other)const{
-        return quaternion(a*other.a-b*other.b-c*other.c-d*other.d,
-                          a*other.b+b*other.a+c*other.d-d*other.c,
-                          a*other.c-b*other.d+c*other.a+d*other.b,
-                          a*other.d+b*other.c-c*other.a+d*other.a);
-    }
-    double norm()const{
-        return pow(a*a+b*b+c*c+d*d,0.5);//模
-    }
-    quaternion conjugate()const{
-        return quaternion(a,-b,-c,-d);//共轭
-    }
-    quaternion inverse()const{
-        quaternion q_=conjugate();
-        double qn=norm();
-        return quaternion(q_.a/(qn*qn),q_.b/(qn*qn),q_.c/(qn*qn),q_.d/(qn*qn));//逆
-    }
-    quaternion rotation(const quaternion& v)const{//旋转
-        quaternion q_=inverse();
-        return (*this)*v*q_;
-    }
-    friend class trans;
-};
-
-class pose{
-    private:
-    std::array<double,3>position;
-    std::array<double,3>euler;
-    public:
-    pose():position{0,0,0},euler{0,0,0}{}
-    pose(double x,double y,double z,double yaw,double pitch,double row):
-    position{x,y,z},euler{yaw,pitch,row}{} 
-    void print(){
-        std::cout<<position[0]<<" "<<position[1]<<" "<<position[2]<<" "
-        <<euler[0]<<" "<<euler[1]<<" "<<euler[2]<<std::endl;
-    }   
-    friend class trans;
-};
-
-class trans{
-    private:
-    std::array<double,3>t;
-    std::array<std::array<double,3>,3>R;
-    public:
-    trans():t{0,0,0},R{{{1,0,0},{0,1,0},{0,0,1}}}{}
-    trans(const std::array<double,3>&t,const std::array<std::array<double,3>,3>R):t(t),R(R){}
-    std::array<double,3>to_euler()const{
-        double yaw,pitch,roll;
-        pitch=std::asin(-R[2][0]);
-        if(std::cos(pitch)>1e-6){
-            yaw=std::atan2(R[2][1],R[2][2]);
-            roll=std::atan2(R[1][0],R[0][0]);
-        }else{
-            yaw=0;
-            roll=std::atan2(-R[0][1],R[1][1]);
-        }
-        return {yaw,pitch,roll};
-    }
-    void TF(pose& B,pose& A)const{
-        std::array<double,3> B_A_R_e=to_euler();
-        quaternion B_A_q(B_A_R_e[0],B_A_R_e[1],B_A_R_e[2]);//旋转矩阵变为四元数
-        quaternion B_p_q(0,B.position[0],B.position[1],B.position[2]);//坐标B转换为四元数
-        quaternion B_inv=B_A_q.rotation(B_p_q);//旋转
-        A.position={B_inv.b+t[0],B_inv.c+t[1],B_inv.d+t[2]};
-        quaternion B_e_q(B.euler[0],B.euler[1],B.euler[2]);//姿态转换为四元数
-        A.euler=(B_A_q*B_e_q).to_euler();
-    };
-};
+#include"tf.hpp"
 
 
 int main(){
+    std::cout<<"初始坐标系为Camera\n";
+    std::cout<<"请输入坐标系间的转换关系\n格式:转换前的坐标系 转换后的坐标系 x y z yaw pitch roll(输入end以停止)"<<std::endl;
+    std::string s1,s2;
+    double x_s,y_s,z_s,yaw_s,pitch_s,roll_s;
+    std::map<std::string,std::map<std::string,trans>> b_a;
+    while(std::cin>>s1) {
+        if(s1=="end")break;
+        std::cin>>s2>>x_s>>y_s>>z_s>>yaw_s>>pitch_s>>roll_s;
+        b_a[s1][s2] =trans({x_s,y_s,z_s},{yaw_s,pitch_s,roll_s});
+    }
+    std::cin.clear();
+
     double x,y,z,yaw,pitch,roll;
-    std::map<std::string,trans> b_a={{"Gimbal",{}}};
+    
     std::string line;
+    std::cout<<"输入当前坐标\n";
     std::cin>>x>>y>>z>>yaw>>pitch>>roll;
     pose b{x,y,z,yaw,pitch,roll},a;
+    std::cout<<"输入目标坐标系\n";
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
     std::getline(std::cin,line);
     size_t pos=line.find('/');
     std::string b_a_t=line.substr(pos+1);
-    auto it=b_a.find(b_a_t);
-    if(it==b_a.end()){
-        std::cout<<"no find";
-    }else{
-        it->second.TF(b,a);
-        a.print();
+    std::string now="Camera";
+    auto it=b_a.find(now);
+    while(it->second.find(b_a_t)==it->second.end()){
+        now=it->second.begin()->first;
+        it=b_a.find(now);
+        it->second.begin()->second.TF(b,a);
+        b=a;
     }
-    
+    std::cout<<"output:"<<std::endl;
+    a.print();
     return 0;
 }
