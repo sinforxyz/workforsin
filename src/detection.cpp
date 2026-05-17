@@ -7,75 +7,122 @@
 cv::Mat process(cv::Mat img,int i){
     cv::Mat red;
     cv::extractChannel(img,red,i);
-    
-    cv::Mat img_blur;
-    cv::GaussianBlur(red, img_blur, cv::Size(3, 3), 1.0);
+
 
     cv::Mat im;
-    cv::threshold(img_blur,im,238,255,cv::THRESH_BINARY_INV);
+    cv::threshold(red,im,150,255,cv::THRESH_BINARY);
 
-
-    cv::Mat grad_x, grad_y, abs_grad_x, abs_grad_y, sobel_edge;
-    cv::Sobel(im, grad_x, CV_16S, 1, 0, 3, 0.1);
-    cv::convertScaleAbs(grad_x, abs_grad_x);
-    cv::Sobel(im, grad_y, CV_16S, 0, 1, 3, 0.1);
-    cv::convertScaleAbs(grad_y, abs_grad_y);
-    cv::addWeighted(abs_grad_x, 0.6, abs_grad_y, 0.4, 0, sobel_edge);
+    cv::Mat kernel=cv::getStructuringElement(cv::MORPH_RECT,cv::Size(3,3));
+    cv::morphologyEx(im,im,cv::MORPH_CLOSE,kernel);
+    cv::morphologyEx(im,im,cv::MORPH_OPEN,kernel); 
 
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(sobel_edge, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    cv::findContours(im, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
 
-    std::vector<std::vector<cv::Point>> valid_contours;
-    for (auto& cnt:contours) {
-        double area = contourArea(cnt);
-        cv::Rect rect = boundingRect(cnt);
-        double aspect_ratio = (double)rect.height / rect.width;
-
-        if (area > 5 && aspect_ratio > 1) {
-            valid_contours.push_back(cnt);
-        }
-    }
-
-    cv::Mat result = img.clone();
-    std::vector<cv::Point2f> midpoints;
-    for (auto& cnt:valid_contours) {
-        cv::Rect rect = cv::boundingRect(cnt);
-        cv::rectangle(result, rect, cv::Scalar(0, 0, 255), 2);
-        float midx=rect.x+rect.width/2.0;
-        cv::Point2f midpoint1(midx,rect.y);
-        cv::Point2f midpoint2(midx,rect.y+rect.height);
-
-
-        midpoints.push_back(midpoint1);
-        midpoints.push_back(midpoint2);
-
-
-    }
-
-    std::vector<cv::Point2f>Midpoints;
-
-
-    if(midpoints.size()>0){
-        for(int j=0;j<midpoints.size();j=j+4){
-            if(6.0*6.0*(std::pow(midpoints[j+0].x-midpoints[j+1].x,2)+std::pow(midpoints[j+0].y-midpoints[j+1].y,2))<=
-            std::pow(midpoints[j+0].x-midpoints[j+2].x,2)+std::pow(midpoints[j+0].y-midpoints[j+2].y,2)){
-                continue;
-            }else if(i==1&&midpoints[j+0].y-midpoints[j+2].y<=0.5*std::pow(std::pow(midpoints[j+0].x-midpoints[j+2].x,2)+std::pow(midpoints[j+0].y-midpoints[j+2].y,2),0.5)){
-
-            }else{
-                for(int k=j;k<j+4;k++){
-                    Midpoints.push_back(midpoints[k]);
-                }
-                cv::line(result,Midpoints[j+0],Midpoints[j+2],cv::Scalar(0,0,255),2);
-                cv::line(result,Midpoints[j+1],Midpoints[j+3],cv::Scalar(0,0,255),2);
+    cv::Mat result=img.clone();
+    std::vector<std::vector<float>>lights;
+    std::vector<std::vector<cv::Point2f>>lights_v;
+    for(auto& cnt:contours) {
+        cv::RotatedRect rect=cv::minAreaRect(cnt);
+            double area=cv::contourArea(cnt);
+            if(rect.size.width>rect.size.height){
+                std::swap(rect.size.width,rect.size.height);
+                rect.angle=90+rect.angle;
             }
-        }
+            if(rect.size.height<rect.size.width*2||rect.size.height>rect.size.width*10){
+                continue;
+            }
+            if(area>50){
+                cv::Point2f ver[4];
+                rect.points(ver);
+                std::vector<cv::Point2f>v(ver,ver+4);
+                lights_v.push_back(v);
+                lights.push_back({rect.center.x,rect.center.y,rect.size.width,rect.size.height,rect.angle});
+            }
     }
 
-    return result;
+    
+    std::vector<bool> used(lights.size(),false);
+    for(int i=0;i<lights.size();i++){
+        if(used[i]){
+            continue;
+        }
+        std::vector<float>light1{lights[i][0],lights[i][1],lights[i][2],lights[i][3],lights[i][4]};//x,y,宽，高，倾斜角
+        int best=-1;
+        for(size_t j=i+1;j<lights.size();j++){
+            if(used[j]){
+                continue;
+            }
+            std::vector<float>light2{lights[j][0],lights[j][1],lights[j][2],lights[j][3],lights[j][4]};//x,y,宽，高，倾斜角
+            float h_max=std::max(light1[3],light2[3]);
+            float h_min=std::min(light1[3],light2[3]);
+            if(h_min/h_max<0.7f){
+                continue;
+            }
+            if(std::abs(light1[4]-light2[4])>15){
+                continue;
+            }
+            if(std::pow(std::pow(light1[1]-light2[1],2)+std::pow(light1[0]-light2[0],2),0.5)>h_max*3){
+                continue;
+            }
+            std::vector<cv::Point2f> lv,rv;
+            if(light1[0]<=light2[0]){
+                lv=lights_v[i];
+                rv=lights_v[j];
+            }else{
+                lv=lights_v[j];
+                rv=lights_v[i];
+            }
 
+            cv::Point2f top_edge=rv[0]-lv[1];
+            cv::Point2f bottom_edge=rv[3]-lv[2];
+            cv::Point2f left_edge=lv[2]-lv[1];
+            cv::Point2f right_edge=rv[3]-rv[0];
+            auto angle_between=[](cv::Point2f v1,cv::Point2f v2)->float{float dot=v1.x*v2.x+v1.y*v2.y;float norm=cv::norm(v1)*cv::norm(v2);
+                if(norm<1e-6)return 0;
+                return std::acos(dot/norm)*180.0f/CV_PI;
+            };
+            float angle_top_bottom=angle_between(top_edge,bottom_edge);
+            float angle_left_right=angle_between(left_edge,right_edge);
+            if(angle_top_bottom>3||angle_left_right>3){
+                continue;
+            }
+
+            float diag1=cv::norm(rv[1]-lv[3]);
+            float diag2=cv::norm(rv[3]-lv[1]);
+            float diag_ratio=std::min(diag1,diag2)/std::max(diag1,diag2);
+            if(diag_ratio<0.72f){
+                continue;
+            }
+            if(best<0){
+                best=j;
+                continue;
+            }
+            float diag3=cv::norm(lights_v[i][1]-lights_v[best][3]);
+            float diag4=cv::norm(lights_v[i][3]-lights_v[best][1]);
+            float diag_ratio_=std::min(diag3,diag4)/std::max(diag3,diag4);
+            if(diag_ratio_<diag_ratio){
+                best=j;
+            }
+            best=j;
+        }
+        if(best<0){
+            continue;
+        }
+        for(int k=0;k<4;k++){
+            cv::line(result,lights_v[i][k],lights_v[i][(k+1)%4],cv::Scalar(0,0,255),2);
+        }
+        for(int k=0;k<4;k++){
+            cv::line(result,lights_v[best][k],lights_v[best][(k+1)%4],cv::Scalar(0,0,255),2);
+        }
+        cv::line(result,lights_v[i][1],lights_v[best][1],cv::Scalar(0,0,255),2);
+        cv::line(result,lights_v[i][3],lights_v[best][3],cv::Scalar(0,0,255),2);
+        used[i]=true;
+        used[best]=true;
+    }
+    return result;
 }
 int main(){
     std::filesystem::create_directories("../output");
