@@ -123,7 +123,6 @@ class trans{
         quaternion B_e_q(B.euler[0],B.euler[1],B.euler[2]);//姿态转换为四元数
         quaternion A_q=B_e_q*B_A_q;
         A_q.normalize();
-        std::cout << "四元数: " << A_q.a << " " << A_q.b << " " << A_q.c << " " << A_q.d << std::endl;
         A.euler=A_q.to_euler();
     };
 };
