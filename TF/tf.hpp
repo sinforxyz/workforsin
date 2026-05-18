@@ -3,6 +3,7 @@
 #include<cmath>
 #include<map>
 #include<limits>
+#define PI 3.141592
 
 
 class quaternion{
@@ -26,16 +27,16 @@ public:
     }
     std::array<double,3>to_euler()const{
         double yaw,pitch,roll;
-        double sin_pitch=-2*(a*c-b*d);
+        double sin_pitch=2.0*(a*c-b*d);
 
         if(std::abs(sin_pitch)>=0.999){
-            pitch=std::copysign(M_PI/2.0,sin_pitch);
-            yaw=std::atan2(2*(a*b+c*d),1-2*(b*b+c*c));
+            pitch=std::copysign(PI/2.0,sin_pitch);
+            yaw=std::atan2(2.0*(a*b+c*d),1.0-2.0*(b*b+c*c));
             roll=0;
         }else{
             pitch=std::asin(sin_pitch);
-            yaw=std::atan2(2*(c*d+a*b),1-2*(b*b+c*c));
-            roll=std::atan2(2*(b*c+a*d),1-2*(c*c+d*d));
+            yaw=std::atan2(2.0*(c*d+a*b),1.0-2.0*(b*b+c*c));
+            roll=std::atan2(2.0*(b*c+a*d),1.0-2.0*(c*c+d*d));
         }
         return{yaw,pitch,roll};
     }
@@ -51,6 +52,15 @@ public:
     double norm()const{
         return pow(a*a+b*b+c*c+d*d,0.5);//模
     }
+    void normalize(){
+        double n=norm();
+        if(n>0){
+            a/=n;
+            b/=n;
+            c/=n;
+            d/=n;
+        }
+    }
     quaternion conjugate()const{
         return quaternion(a,-b,-c,-d);//共轭
     }
@@ -61,7 +71,7 @@ public:
     }
     quaternion rotation(const quaternion& v)const{//旋转
         quaternion q_=inverse();
-        return q_*v*(*this);
+        return (*this)*v*q_;
     }
     friend class trans;
 };
@@ -105,12 +115,15 @@ class trans{
     void TF(pose& B,pose& A)const{
         //std::array<double,3> B_A_R_e=to_euler();
 
-        std::array<double,3> B_A_R_e=r;
-        quaternion B_A_q(B_A_R_e[0],B_A_R_e[1],B_A_R_e[2]);//旋转矩阵变为四元数
+        //std::array<double,3> B_A_R_e=r;
+        quaternion B_A_q(r[0],r[1],r[2]);//旋转矩阵变为四元数
         quaternion B_p_q(0,B.position[0],B.position[1],B.position[2]);//坐标B转换为四元数
         quaternion B_inv=B_A_q.rotation(B_p_q);//旋转
         A.position={B_inv.b+t[0],B_inv.c+t[1],B_inv.d+t[2]};
         quaternion B_e_q(B.euler[0],B.euler[1],B.euler[2]);//姿态转换为四元数
-        A.euler=(B_A_q*B_e_q).to_euler();
+        quaternion A_q=B_e_q*B_A_q;
+        A_q.normalize();
+        std::cout << "四元数: " << A_q.a << " " << A_q.b << " " << A_q.c << " " << A_q.d << std::endl;
+        A.euler=A_q.to_euler();
     };
 };

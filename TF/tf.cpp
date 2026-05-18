@@ -7,7 +7,7 @@
 
 
 int main(){
-   std::cout<<"初始坐标系为Camera\n";
+    std::cout<<"初始坐标系为Camera\n";
     std::cout<<"请输入坐标系间的转换关系\n格式:转换前的坐标系 转换后的坐标系 x y z yaw pitch roll(输入end以停止)"<<std::endl;
     std::string s1,s2;
     double x_s,y_s,z_s,yaw_s,pitch_s,roll_s;
